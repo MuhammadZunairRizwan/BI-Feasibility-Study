@@ -13,7 +13,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectDoc = await adminDb.collection('projects').doc(params.id).get();
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
+    const projectDoc = await adminDb!.collection('projects').doc(params.id).get();
 
     if (!projectDoc.exists) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -37,7 +41,7 @@ export async function GET(
     }));
 
     // Get reports subcollection
-    const reportsSnapshot = await adminDb
+    const reportsSnapshot = await adminDb!
       .collection('projects')
       .doc(params.id)
       .collection('reports')
@@ -48,7 +52,7 @@ export async function GET(
         const reportData = doc.data();
 
         // Get assumptions for this report
-        const assumptionsSnapshot = await adminDb
+        const assumptionsSnapshot = await adminDb!
           .collection('projects')
           .doc(params.id)
           .collection('reports')
@@ -94,10 +98,14 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
     const body = await request.json();
 
     // Verify ownership
-    const projectDoc = await adminDb.collection('projects').doc(params.id).get();
+    const projectDoc = await adminDb!.collection('projects').doc(params.id).get();
 
     if (!projectDoc.exists || projectDoc.data()?.userId !== user.uid) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -111,7 +119,7 @@ export async function PATCH(
         updatedAt: new Date(),
       });
 
-    const updatedDoc = await adminDb.collection('projects').doc(params.id).get();
+    const updatedDoc = await adminDb!.collection('projects').doc(params.id).get();
 
     return NextResponse.json({
       id: updatedDoc.id,
@@ -137,15 +145,19 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
     // Verify ownership
-    const projectDoc = await adminDb.collection('projects').doc(params.id).get();
+    const projectDoc = await adminDb!.collection('projects').doc(params.id).get();
 
     if (!projectDoc.exists || projectDoc.data()?.userId !== user.uid) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
     // Delete subcollections first (documents, reports)
-    const batch = adminDb.batch();
+    const batch = adminDb!.batch();
 
     // Delete documents
     const documentsSnapshot = await adminDb
@@ -158,7 +170,7 @@ export async function DELETE(
     });
 
     // Delete reports and their assumptions
-    const reportsSnapshot = await adminDb
+    const reportsSnapshot = await adminDb!
       .collection('projects')
       .doc(params.id)
       .collection('reports')
@@ -174,7 +186,7 @@ export async function DELETE(
     await batch.commit();
 
     // Delete the project
-    await adminDb.collection('projects').doc(params.id).delete();
+    await adminDb!.collection('projects').doc(params.id).delete();
 
     return NextResponse.json({ success: true });
   } catch (error) {

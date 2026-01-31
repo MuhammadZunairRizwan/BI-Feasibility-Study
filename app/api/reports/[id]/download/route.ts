@@ -14,8 +14,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
     // Find the report by searching through projects
-    const projectsSnapshot = await adminDb
+    const projectsSnapshot = await adminDb!
       .collection('projects')
       .where('userId', '==', user.uid)
       .get();
@@ -24,7 +28,7 @@ export async function GET(
     let project = null;
 
     for (const projectDoc of projectsSnapshot.docs) {
-      const reportDoc = await adminDb
+      const reportDoc = await adminDb!
         .collection('projects')
         .doc(projectDoc.id)
         .collection('reports')
@@ -49,7 +53,7 @@ export async function GET(
         project = {
           id: projectDoc.id,
           ...projectDoc.data(),
-        };
+        } as any;
         break;
       }
     }
@@ -62,10 +66,10 @@ export async function GET(
     const pdfBuffer = await generatePDF({
       ...report,
       project,
-    });
+    } as any);
 
     // Return PDF
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="Feasibility_Study_${project.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`,

@@ -22,8 +22,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
     // Verify project ownership
-    const projectDoc = await adminDb.collection('projects').doc(projectId).get();
+    const projectDoc = await adminDb!.collection('projects').doc(projectId).get();
 
     if (!projectDoc.exists || projectDoc.data()?.userId !== user.uid) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Save to Firestore as subcollection
-      const docRef = adminDb
+      const docRef = adminDb!
         .collection('projects')
         .doc(projectId)
         .collection('documents')

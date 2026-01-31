@@ -3,14 +3,13 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText, Globe } from 'lucide-react';
 
 interface ReportOptionsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (wordCount: number) => void;
+  onGenerate: (language: 'en' | 'ar') => void;
   isGenerating: boolean;
 }
 
@@ -20,15 +19,15 @@ export function ReportOptionsModal({
   onGenerate,
   isGenerating,
 }: ReportOptionsModalProps) {
-  const [wordCount, setWordCount] = useState(5000);
+  const [language, setLanguage] = useState<'en' | 'ar'>('en');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📋 Submitting report generation with wordCount:', wordCount);
+    console.log('Submitting report generation with language:', language);
     setIsSubmitting(true);
     try {
-      await onGenerate(wordCount);
+      await onGenerate(language);
     } finally {
       setIsSubmitting(false);
     }
@@ -44,46 +43,40 @@ export function ReportOptionsModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+          {/* Language Selection */}
           <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="wordCount" className="text-slate-300">
-                Report Length (words)
-              </Label>
-              <div className="flex items-center gap-3">
-                <Input
-                  id="wordCount"
-                  type="number"
-                  min="1500"
-                  max="10000"
-                  step="500"
-                  value={wordCount}
-                  onChange={(e) => {
-                    const value = Math.min(10000, Math.max(1500, parseInt(e.target.value) || 1500));
-                    setWordCount(value);
-                  }}
-                  className="bg-slate-800 border-slate-600 text-white placeholder-slate-500 focus:border-cyan-400"
-                />
-                <span className="text-sm font-medium text-slate-300 min-w-fit">
-                  {wordCount.toLocaleString()} words
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                Minimum: 1,500 words | Maximum: 10,000 words
-              </p>
+            <Label className="text-slate-300 flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Select Report Language
+            </Label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all border-2 ${
+                  language === 'en'
+                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-300'
+                    : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-500'
+                }`}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('ar')}
+                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all border-2 ${
+                  language === 'ar'
+                    ? 'border-cyan-400 bg-cyan-400/20 text-cyan-300'
+                    : 'border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-500'
+                }`}
+              >
+                العربية (Arabic)
+              </button>
             </div>
-
-            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 space-y-2">
-              <p className="text-sm text-slate-300 font-medium">Report Distribution:</p>
-              <div className="text-xs text-slate-400 space-y-1">
-                <p>• Executive Summary: {Math.round(wordCount * 0.12).toLocaleString()} words</p>
-                <p>• Market Analysis: {Math.round(wordCount * 0.25).toLocaleString()} words</p>
-                <p>• Technical Analysis: {Math.round(wordCount * 0.20).toLocaleString()} words</p>
-                <p>• Financial Analysis: {Math.round(wordCount * 0.25).toLocaleString()} words</p>
-                <p>• Risk Assessment: {Math.round(wordCount * 0.12).toLocaleString()} words</p>
-                <p>• Recommendations: {Math.round(wordCount * 0.06).toLocaleString()} words</p>
-              </div>
-            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              Report will be generated in 12,000 words (comprehensive feasibility study)
+            </p>
           </div>
 
           <DialogFooter className="gap-3 pt-4">

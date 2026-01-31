@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId, projectData, wordCount } = await request.json();
+    const { projectId, projectData, wordCount, language } = await request.json();
 
-    console.log('📥 API received wordCount:', wordCount, 'type:', typeof wordCount);
+    console.log('API received wordCount:', wordCount, 'type:', typeof wordCount, 'language:', language);
 
     if (!projectId) {
       return NextResponse.json(
@@ -21,12 +21,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate and enforce word count limits
-    let validWordCount = wordCount || 5000;
-    console.log('✅ validWordCount after validation:', validWordCount);
-    if (validWordCount < 1500) validWordCount = 1500;
-    if (validWordCount > 10000) validWordCount = 10000;
-    console.log('✅ validWordCount after limits:', validWordCount);
+    // Use fixed word count of 12000
+    const FIXED_WORD_COUNT = 12000;
+    console.log('Using fixed word count:', FIXED_WORD_COUNT);
 
     // Check if Firebase Admin is available
     const { adminDb } = await import('@/lib/firebase-admin');
@@ -49,7 +46,8 @@ export async function POST(request: NextRequest) {
               description: projectData.description,
               documents: projectData.documents || [],
             },
-            validWordCount
+            FIXED_WORD_COUNT,
+            language || 'en'
           );
 
           return NextResponse.json({
@@ -78,7 +76,8 @@ export async function POST(request: NextRequest) {
           description: projectData.description,
           documents: projectData.documents || [],
         },
-        validWordCount
+        FIXED_WORD_COUNT,
+        language || 'en'
       ).catch(async (error) => {
         console.error('Report generation failed:', error);
       });
@@ -141,7 +140,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Start report generation in background
-    generateFeasibilityReport(project, validWordCount).catch(async (error) => {
+    generateFeasibilityReport(project, FIXED_WORD_COUNT, language || 'en').catch(async (error) => {
       console.error('Report generation failed:', error);
       if (adminDb) {
         await adminDb.collection('projects').doc(projectId).update({

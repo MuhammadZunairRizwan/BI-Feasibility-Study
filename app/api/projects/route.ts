@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectsSnapshot = await adminDb
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
+    const projectsSnapshot = await adminDb!
       .collection('projects')
       .where('userId', '==', user.uid)
       .orderBy('updatedAt', 'desc')
@@ -39,6 +43,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!adminDb) {
+      return NextResponse.json({ error: 'Server not configured' }, { status: 500 });
+    }
+
     const body = await request.json();
     const { name, sector, country, city, loanAvailable, description } = body;
 
@@ -49,7 +57,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const projectRef = adminDb.collection('projects').doc();
+    const projectRef = adminDb!.collection('projects').doc();
     const projectData = {
       userId: user.uid,
       name,

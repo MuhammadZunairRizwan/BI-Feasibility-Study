@@ -42,7 +42,6 @@ export default function ProjectPage({ params }: ProjectPageProps) {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const [generatingReportOptions, setGeneratingReportOptions] = useState(false);
-  const [generationWordCount, setGenerationWordCount] = useState(5000);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -169,10 +168,11 @@ export default function ProjectPage({ params }: ProjectPageProps) {
 
   const latestReport = project.reports[0];
 
-  const handleGenerateReport = async (wordCount: number) => {
+  const handleGenerateReport = async (language: 'en' | 'ar' = 'en') => {
     if (!project || !user) return;
 
-    console.log('🚀 handleGenerateReport called with wordCount:', wordCount);
+    const FIXED_WORD_COUNT = 12000;
+    console.log('Starting report generation with language:', language, 'wordCount:', FIXED_WORD_COUNT);
     setIsGenerating(true);
     setGeneratingReportOptions(false);
 
@@ -196,7 +196,8 @@ export default function ProjectPage({ params }: ProjectPageProps) {
           description: project.description,
           documents: project.documents,
         },
-        wordCount, // Pass the word count to the API
+        wordCount: FIXED_WORD_COUNT,
+        language,
       };
       console.log('📤 Sending to API with body:', requestBody);
 

@@ -93,8 +93,8 @@ function cleanContent(content: string): string {
 }
 
 // Synchronous version that returns the report data directly (for use without Firebase Admin)
-export async function generateFeasibilityReportSync(project: Project, wordCount: number = 5000): Promise<GeneratedReport> {
-  console.log('Starting synchronous report generation for project:', project.id, 'with wordCount:', wordCount);
+export async function generateFeasibilityReportSync(project: Project, wordCount: number = 5000, language: 'en' | 'ar' = 'en'): Promise<GeneratedReport> {
+  console.log('Starting synchronous report generation for project:', project.id, 'with wordCount:', wordCount, 'language:', language);
 
   // Prepare document context
   const documentContext = project.documents
@@ -113,10 +113,10 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
 `;
 
   const sectionWordCounts = calculateSectionWordCounts(wordCount);
-  console.log('📊 Section word count breakdown:', sectionWordCounts);
+  console.log('Section word count breakdown:', sectionWordCounts);
 
   // Generate all sections in parallel for faster processing
-  console.log('🚀 Generating all sections in parallel...');
+  console.log('Generating all sections in parallel...');
   const [
     executiveSummary,
     marketAnalysis,
@@ -126,13 +126,13 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
     recommendations,
     assumptions,
   ] = await Promise.all([
-    generateExecutiveSummary(projectContext, sectionWordCounts.executiveSummary),
-    generateMarketAnalysis(projectContext, sectionWordCounts.marketAnalysis),
-    generateTechnicalAnalysis(projectContext, sectionWordCounts.technicalAnalysis),
-    generateFinancialAnalysis(projectContext, sectionWordCounts.financialAnalysis),
-    generateRiskAssessment(projectContext, sectionWordCounts.riskAssessment),
-    generateRecommendations(projectContext, sectionWordCounts.recommendations),
-    generateAssumptions(projectContext),
+    generateExecutiveSummary(projectContext, sectionWordCounts.executiveSummary, language),
+    generateMarketAnalysis(projectContext, sectionWordCounts.marketAnalysis, language),
+    generateTechnicalAnalysis(projectContext, sectionWordCounts.technicalAnalysis, language),
+    generateFinancialAnalysis(projectContext, sectionWordCounts.financialAnalysis, language),
+    generateRiskAssessment(projectContext, sectionWordCounts.riskAssessment, language),
+    generateRecommendations(projectContext, sectionWordCounts.recommendations, language),
+    generateAssumptions(projectContext, language),
   ]);
 
   // Calculate total word count
@@ -144,8 +144,8 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
     countWords(riskAssessment.content) +
     countWords(recommendations.content);
 
-  console.log(`✅ All sections generated successfully (sync mode)`);
-  console.log(`📊 TOTAL WORDS: ${totalWords} (Target: ${wordCount})`);
+  console.log(`All sections generated successfully (sync mode)`);
+  console.log(`TOTAL WORDS: ${totalWords} (Target: ${wordCount})`);
 
   return {
     executiveSummary: executiveSummary.content,
@@ -159,12 +159,12 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
   };
 }
 
-export async function generateFeasibilityReport(project: Project, wordCount: number = 5000): Promise<void> {
+export async function generateFeasibilityReport(project: Project, wordCount: number = 5000, language: 'en' | 'ar' = 'en'): Promise<void> {
   // Dynamic import to handle case where Firebase Admin is not configured
   const { adminDb } = await import('@/lib/firebase-admin');
 
   try {
-    console.log('🚀 Starting report generation for project:', project.id, 'with wordCount:', wordCount);
+    console.log('Starting report generation for project:', project.id, 'with wordCount:', wordCount, 'language:', language);
 
     // Prepare document context
     const documentContext = project.documents
@@ -183,10 +183,10 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
 `;
 
     const sectionWordCounts = calculateSectionWordCounts(wordCount);
-    console.log('📊 Section word count breakdown:', sectionWordCounts);
+    console.log('Section word count breakdown:', sectionWordCounts);
 
     // Generate all sections in parallel for faster processing
-    console.log('🚀 Generating all sections in parallel...');
+    console.log('Generating all sections in parallel...');
     const [
       executiveSummary,
       marketAnalysis,
@@ -196,13 +196,13 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
       recommendations,
       assumptions,
     ] = await Promise.all([
-      generateExecutiveSummary(projectContext, sectionWordCounts.executiveSummary),
-      generateMarketAnalysis(projectContext, sectionWordCounts.marketAnalysis),
-      generateTechnicalAnalysis(projectContext, sectionWordCounts.technicalAnalysis),
-      generateFinancialAnalysis(projectContext, sectionWordCounts.financialAnalysis),
-      generateRiskAssessment(projectContext, sectionWordCounts.riskAssessment),
-      generateRecommendations(projectContext, sectionWordCounts.recommendations),
-      generateAssumptions(projectContext),
+      generateExecutiveSummary(projectContext, sectionWordCounts.executiveSummary, language),
+      generateMarketAnalysis(projectContext, sectionWordCounts.marketAnalysis, language),
+      generateTechnicalAnalysis(projectContext, sectionWordCounts.technicalAnalysis, language),
+      generateFinancialAnalysis(projectContext, sectionWordCounts.financialAnalysis, language),
+      generateRiskAssessment(projectContext, sectionWordCounts.riskAssessment, language),
+      generateRecommendations(projectContext, sectionWordCounts.recommendations, language),
+      generateAssumptions(projectContext, language),
     ]);
 
     // Calculate total word count
@@ -214,8 +214,8 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
       countWords(riskAssessment.content) +
       countWords(recommendations.content);
 
-    console.log(`✅ All sections generated successfully`);
-    console.log(`📊 TOTAL WORDS: ${totalWords} (Target: ${wordCount})`);
+    console.log(`All sections generated successfully`);
+    console.log(`TOTAL WORDS: ${totalWords} (Target: ${wordCount})`);
 
     // Save to Firestore if adminDb is available
     if (adminDb) {
@@ -282,12 +282,16 @@ ${documentContext ? `Supporting Documents:\n${documentContext}` : ''}
   }
 }
 
-async function generateExecutiveSummary(context: string, wordCount: number = 600): Promise<ReportSection> {
+async function generateExecutiveSummary(context: string, wordCount: number = 600, language: 'en' | 'ar' = 'en'): Promise<ReportSection> {
   const minWords = Math.round(wordCount * 0.9);
   const maxWords = Math.round(wordCount * 1.1);
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const languageWarning = language === 'ar' ? '*** IMPORTANT: YOU MUST RESPOND ENTIRELY IN ARABIC ***' : '';
 
-  const prompt = `You are a senior management consultant at a top-tier firm (McKinsey, BCG, Bain level).
-Generate a DETAILED and COMPREHENSIVE Executive Summary for this feasibility study.
+  const prompt = `${languageWarning}
+You are a senior management consultant at a top-tier firm (McKinsey, BCG, Bain level).
+Generate a DETAILED and COMPREHENSIVE Executive Summary for this feasibility study ${languageInstruction}.
+RESPOND ENTIRELY ${language === 'ar' ? 'IN ARABIC' : 'IN ENGLISH'}.
 
 ${context}
 
@@ -336,13 +340,15 @@ IMPORTANT FORMATTING RULES:
 - Start directly with content
 - Include detailed explanations, not just brief statements
 
-CRITICAL WORD COUNT REQUIREMENT:
-- MINIMUM: ${minWords} words
-- MAXIMUM: ${maxWords} words
-- Your response MUST be between these word counts
-- To reach this word count, expand each section with detailed analysis, specific examples, and comprehensive explanations
-- If you complete the outline in fewer words, add more depth to each section
-- Do not use filler text - only substantive content that adds value`;
+*** CRITICAL WORD COUNT REQUIREMENT - YOU MUST COMPLY ***
+- MINIMUM REQUIRED: ${minWords} words
+- MAXIMUM ALLOWED: ${maxWords} words
+- YOUR ENTIRE RESPONSE MUST BE BETWEEN THESE WORD COUNTS - NO EXCEPTIONS
+- Count every single word in your response
+- If you finish before reaching ${minWords} words, you MUST expand sections further
+- Add more detailed examples, deeper analysis, and comprehensive explanations to reach the minimum
+- This is NON-NEGOTIABLE - responses below ${minWords} words will be rejected
+- Expand each paragraph with additional context, supporting data, and detailed reasoning`;
 
   const content = await generateContent({
     prompt,
@@ -357,12 +363,16 @@ CRITICAL WORD COUNT REQUIREMENT:
   return { content: cleanedContent };
 }
 
-async function generateMarketAnalysis(context: string, wordCount: number = 1250): Promise<ReportSection> {
+async function generateMarketAnalysis(context: string, wordCount: number = 1250, language: 'en' | 'ar' = 'en'): Promise<ReportSection> {
   const minWords = Math.round(wordCount * 0.9);
   const maxWords = Math.round(wordCount * 1.1);
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const languageWarning = language === 'ar' ? '*** IMPORTANT: YOU MUST RESPOND ENTIRELY IN ARABIC ***' : '';
 
-  const prompt = `You are a senior market research analyst at a top consulting firm.
-Generate a DETAILED and COMPREHENSIVE Market Analysis section for this feasibility study.
+  const prompt = `${languageWarning}
+You are a senior market research analyst at a top consulting firm.
+Generate a DETAILED and COMPREHENSIVE Market Analysis section for this feasibility study ${languageInstruction}.
+RESPOND ENTIRELY ${language === 'ar' ? 'IN ARABIC' : 'IN ENGLISH'}.
 
 ${context}
 
@@ -439,12 +449,16 @@ CRITICAL WORD COUNT REQUIREMENT:
   return { content: cleanedContent };
 }
 
-async function generateTechnicalAnalysis(context: string, wordCount: number = 1000): Promise<ReportSection> {
+async function generateTechnicalAnalysis(context: string, wordCount: number = 1000, language: 'en' | 'ar' = 'en'): Promise<ReportSection> {
   const minWords = Math.round(wordCount * 0.9);
   const maxWords = Math.round(wordCount * 1.1);
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const languageWarning = language === 'ar' ? '*** IMPORTANT: YOU MUST RESPOND ENTIRELY IN ARABIC ***' : '';
 
-  const prompt = `You are a senior technical consultant specializing in project feasibility.
-Generate a DETAILED and COMPREHENSIVE Technical Feasibility Analysis for this project.
+  const prompt = `${languageWarning}
+You are a senior technical consultant specializing in project feasibility.
+Generate a DETAILED and COMPREHENSIVE Technical Feasibility Analysis for this project ${languageInstruction}.
+RESPOND ENTIRELY ${language === 'ar' ? 'IN ARABIC' : 'IN ENGLISH'}.
 
 ${context}
 
@@ -526,12 +540,16 @@ CRITICAL WORD COUNT REQUIREMENT:
   return { content: cleanedContent };
 }
 
-async function generateFinancialAnalysis(context: string, wordCount: number = 1250): Promise<ReportSection> {
+async function generateFinancialAnalysis(context: string, wordCount: number = 1250, language: 'en' | 'ar' = 'en'): Promise<ReportSection> {
   const minWords = Math.round(wordCount * 0.9);
   const maxWords = Math.round(wordCount * 1.1);
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const languageWarning = language === 'ar' ? '*** IMPORTANT: YOU MUST RESPOND ENTIRELY IN ARABIC ***' : '';
 
-  const prompt = `You are a senior financial analyst at a leading investment firm.
-Generate a DETAILED and COMPREHENSIVE Financial Analysis for this feasibility study.
+  const prompt = `${languageWarning}
+You are a senior financial analyst at a leading investment firm.
+Generate a DETAILED and COMPREHENSIVE Financial Analysis for this feasibility study ${languageInstruction}.
+RESPOND ENTIRELY ${language === 'ar' ? 'IN ARABIC' : 'IN ENGLISH'}.
 
 ${context}
 
@@ -602,20 +620,24 @@ The Financial Analysis MUST include the following sections with EXTENSIVE detail
 IMPORTANT FORMATTING RULES:
 - Include specific, realistic numbers based on industry benchmarks
 - Use markdown headers (## for main sections, ### for subsections)
+- WRITE IN DETAILED NARRATIVE PARAGRAPHS EXPLAINING THE FINANCIAL ANALYSIS - NOT BULLET POINTS
 - MUST use proper markdown tables for all financial data
 - Include multiple detailed tables for different financial aspects
+- Each table should be followed by 2-3 paragraphs explaining the data and implications
 - DO NOT use "---" horizontal rules
 - DO NOT include placeholder text
 - Start directly with content
+- Use flowing prose paragraphs to explain financial analysis, not lists
 
-CRITICAL WORD COUNT REQUIREMENT:
-- MINIMUM: ${minWords} words
-- MAXIMUM: ${maxWords} words
-- Your response MUST be between these word counts
+*** CRITICAL WORD COUNT REQUIREMENT - YOU MUST COMPLY ***
+- MINIMUM REQUIRED: ${minWords} words
+- MAXIMUM ALLOWED: ${maxWords} words
+- YOUR ENTIRE RESPONSE MUST BE BETWEEN THESE WORD COUNTS - NO EXCEPTIONS
+- Count every single word in your response
 - To reach this word count, provide extensive financial analysis, detailed projections, comprehensive tables, and thorough explanations
 - Include specific numbers, percentages, and financial figures for every section
-- If you complete the analysis in fewer words, add more depth to sensitivity analysis, scenario planning, and financial assumptions
-- Every table must include detailed data and explanations`;
+- If you complete the analysis in fewer words, MUST add more depth to sensitivity analysis, scenario planning, and financial assumptions
+- Every table MUST include detailed data and explanations - at least 2-3 paragraphs per table`;
 
   const content = await generateContent({
     prompt,
@@ -630,12 +652,16 @@ CRITICAL WORD COUNT REQUIREMENT:
   return { content: cleanedContent };
 }
 
-async function generateRiskAssessment(context: string, wordCount: number = 600): Promise<ReportSection> {
+async function generateRiskAssessment(context: string, wordCount: number = 600, language: 'en' | 'ar' = 'en'): Promise<ReportSection> {
   const minWords = Math.round(wordCount * 0.9);
   const maxWords = Math.round(wordCount * 1.1);
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const languageWarning = language === 'ar' ? '*** IMPORTANT: YOU MUST RESPOND ENTIRELY IN ARABIC ***' : '';
 
-  const prompt = `You are a senior risk management consultant.
-Generate a DETAILED and COMPREHENSIVE Risk Assessment for this feasibility study.
+  const prompt = `${languageWarning}
+You are a senior risk management consultant.
+Generate a DETAILED and COMPREHENSIVE Risk Assessment for this feasibility study ${languageInstruction}.
+RESPOND ENTIRELY ${language === 'ar' ? 'IN ARABIC' : 'IN ENGLISH'}.
 
 ${context}
 
@@ -705,20 +731,28 @@ The Risk Assessment MUST include the following sections with EXTENSIVE detail:
 IMPORTANT FORMATTING RULES:
 - Be specific about risks relevant to the industry and location
 - Use markdown headers (## for main sections, ### for subsections)
+- WRITE IN DETAILED NARRATIVE PARAGRAPHS - NOT BULLET POINTS (except for tables and matrices)
+- Each risk should have 2-3 paragraph explanations, not just bullets
 - Create detailed risk matrix and monitoring tables
 - Include specific probability percentages and impact quantifications
 - DO NOT use "---" horizontal rules
 - DO NOT include placeholder text
 - Start directly with content
+- Use flowing prose paragraphs to explain risks, not lists
 
-CRITICAL WORD COUNT REQUIREMENT:
-- MINIMUM: ${minWords} words
-- MAXIMUM: ${maxWords} words
-- Your response MUST be between these word counts
+*** CRITICAL WORD COUNT REQUIREMENT - YOU MUST COMPLY ***
+- MINIMUM REQUIRED: ${minWords} words
+- MAXIMUM ALLOWED: ${maxWords} words
+- YOUR ENTIRE RESPONSE MUST BE BETWEEN THESE WORD COUNTS - NO EXCEPTIONS
+- Count every single word in your response
 - To reach this word count, provide extensive risk analysis, detailed mitigation strategies, and comprehensive monitoring framework
 - Include specific numbers, percentages, and financial quantifications for risks
-- If you complete the analysis in fewer words, add more depth to risk scenarios and mitigation strategies
-- Every risk must have detailed analysis and actionable mitigation steps`;
+- If you complete the analysis in fewer words, MUST add more depth to risk scenarios and mitigation strategies
+- Every risk must have 2-3 paragraphs of detailed analysis and actionable mitigation steps
+
+LANGUAGE REQUIREMENT - ${language === 'ar' ? '*** RESPOND ENTIRELY IN ARABIC ***' : '*** RESPOND ENTIRELY IN ENGLISH ***'}:
+Your entire response MUST be ${language === 'ar' ? 'ENTIRELY in ARABIC language' : 'ENTIRELY in ENGLISH language'}.
+Do not mix languages. Every single word must be ${language === 'ar' ? 'Arabic' : 'English'}. ${language === 'ar' ? 'استخدم اللغة العربية فقط في جميع أنحاء الرد' : ''}`;
 
   const content = await generateContent({
     prompt,
@@ -733,12 +767,16 @@ CRITICAL WORD COUNT REQUIREMENT:
   return { content: cleanedContent };
 }
 
-async function generateRecommendations(context: string, wordCount: number = 300): Promise<ReportSection> {
+async function generateRecommendations(context: string, wordCount: number = 300, language: 'en' | 'ar' = 'en'): Promise<ReportSection> {
   const minWords = Math.round(wordCount * 0.9);
   const maxWords = Math.round(wordCount * 1.1);
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const languageWarning = language === 'ar' ? '*** IMPORTANT: YOU MUST RESPOND ENTIRELY IN ARABIC ***' : '';
 
-  const prompt = `You are a senior strategy consultant providing actionable recommendations.
-Generate a DETAILED and COMPREHENSIVE Recommendations section for this feasibility study.
+  const prompt = `${languageWarning}
+You are a senior strategy consultant providing actionable recommendations.
+Generate a DETAILED and COMPREHENSIVE Recommendations section for this feasibility study ${languageInstruction}.
+RESPOND ENTIRELY ${language === 'ar' ? 'IN ARABIC' : 'IN ENGLISH'}.
 
 ${context}
 
@@ -820,19 +858,27 @@ The Recommendations section MUST include the following sections with EXTENSIVE d
 IMPORTANT FORMATTING RULES:
 - Be specific, actionable, and prioritized
 - Use markdown headers (## for main sections, ### for subsections)
+- WRITE IN DETAILED NARRATIVE PARAGRAPHS - NOT BULLET POINTS (except for tables and matrices)
+- Each recommendation should have detailed paragraph explanations, not just bullets
 - Create detailed tables for implementation roadmap, action items, and KPIs
 - DO NOT use "---" horizontal rules
 - DO NOT include placeholder text
 - Start directly with content
+- Use flowing prose paragraphs to explain recommendations, not lists
 
-CRITICAL WORD COUNT REQUIREMENT:
-- MINIMUM: ${minWords} words
-- MAXIMUM: ${maxWords} words
-- Your response MUST be between these word counts
+*** CRITICAL WORD COUNT REQUIREMENT - YOU MUST COMPLY ***
+- MINIMUM REQUIRED: ${minWords} words
+- MAXIMUM ALLOWED: ${maxWords} words
+- YOUR ENTIRE RESPONSE MUST BE BETWEEN THESE WORD COUNTS - NO EXCEPTIONS
+- Count every single word in your response
 - To reach this word count, provide extensive strategic analysis, detailed implementation steps, comprehensive action plans, and specific success metrics
 - Include specific timelines, responsibilities, and measurable targets
-- If you complete the recommendations in fewer words, add more depth to implementation phases and strategic rationale
-- Every recommendation must include detailed justification and actionable steps`;
+- If you complete the recommendations in fewer words, MUST add more depth to implementation phases and strategic rationale
+- Every recommendation must include 2-3 paragraphs of detailed justification and actionable steps
+
+LANGUAGE REQUIREMENT - ${language === 'ar' ? '*** RESPOND ENTIRELY IN ARABIC ***' : '*** RESPOND ENTIRELY IN ENGLISH ***'}:
+Your entire response MUST be ${language === 'ar' ? 'ENTIRELY in ARABIC language' : 'ENTIRELY in ENGLISH language'}.
+Do not mix languages. Every single word must be ${language === 'ar' ? 'Arabic' : 'English'}. ${language === 'ar' ? 'استخدم اللغة العربية فقط في جميع أنحاء الرد' : ''}`;
 
   const content = await generateContent({
     prompt,
@@ -847,8 +893,9 @@ CRITICAL WORD COUNT REQUIREMENT:
   return { content: cleanedContent };
 }
 
-async function generateAssumptions(context: string): Promise<Assumption[]> {
-  const prompt = `Generate key assumptions for this feasibility study.
+async function generateAssumptions(context: string, language: 'en' | 'ar' = 'en'): Promise<Assumption[]> {
+  const languageInstruction = language === 'ar' ? 'in ARABIC' : 'in ENGLISH';
+  const prompt = `Generate key assumptions for this feasibility study ${languageInstruction}.
 
 ${context}
 

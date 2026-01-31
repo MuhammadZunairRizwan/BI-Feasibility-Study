@@ -2,6 +2,14 @@ import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Optional: import chromium if available
+let chromium: any;
+try {
+  chromium = require('@sparticuz/chromium');
+} catch {
+  // @sparticuz/chromium not installed, will use system Chrome
+}
+
 interface Report {
   id: string;
   executiveSummary: string | null;
@@ -56,21 +64,56 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
   const html = generateHTML(report, options);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  let browser;
+  try {
+    // Try to launch with system Chrome first
+    browser = await puppeteer.launch({
+      headless: true,
+      timeout: 60000,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-software-rasterizer',
+      ],
+    });
+  } catch (launchError: any) {
+    // Fallback: Try with @sparticuz/chromium if available
+    if (chromium) {
+      try {
+        console.log('Attempting to use @sparticuz/chromium...');
+        browser = await puppeteer.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        });
+      } catch (chromiumError: any) {
+        console.error('❌ Failed to launch with @sparticuz/chromium.');
+        throw new Error(`Browser launch failed: ${chromiumError.message}`);
+      }
+    } else {
+      console.error('❌ Failed to launch browser. Chrome/Chromium is not installed.');
+      console.error('Solutions:');
+      console.error('1. Install Chrome: https://www.google.com/chrome/');
+      console.error('2. Or install: npm install --save-dev @sparticuz/chromium');
+      throw new Error(`Browser launch failed: ${launchError.message}`);
+    }
+  }
 
   try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const page = await browser!.newPage();
+    page.setDefaultTimeout(60000);
+    page.setDefaultNavigationTimeout(60000);
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
       margin: {
         top: '80px',
         right: '50px',
-        bottom: '80px',
+        bottom: '100px',
         left: '50px',
       },
       printBackground: true,
@@ -88,14 +131,14 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
         </div>
       `,
       footerTemplate: `
-        <div style="font-size: 8px; width: 100%; padding: 10px 50px; display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #6366f1; background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%); color: white;">
-          <div style="display: flex; align-items: center; gap: 20px;">
-            ${options.companyWebsite ? `<span>🌐 ${options.companyWebsite}</span>` : ''}
-            ${options.companyEmail ? `<span>✉️ ${options.companyEmail}</span>` : ''}
-            ${options.companyPhone ? `<span>📞 ${options.companyPhone}</span>` : ''}
+        <div style="font-size: 12px; width: 100%; padding: 16px 50px; display: flex; justify-content: space-between; align-items: center; border-top: 3px solid #6366f1; background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%); color: white;">
+          <div style="display: flex; align-items: center; gap: 24px; font-weight: 500;">
+            ${options.companyWebsite ? `<span style="font-size: 11px;">Website: ${options.companyWebsite}</span>` : ''}
+            ${options.companyEmail ? `<span style="font-size: 11px;">Email: ${options.companyEmail}</span>` : ''}
+            ${options.companyPhone ? `<span style="font-size: 11px;">Phone: ${options.companyPhone}</span>` : ''}
           </div>
-          <div style="background: #8b5cf6; padding: 4px 12px; border-radius: 4px;">
-            <span class="pageNumber"></span>
+          <div style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 13px;">
+            Page <span class="pageNumber"></span> of <span class="totalPages"></span>
           </div>
         </div>
       `,
@@ -103,23 +146,46 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
     return Buffer.from(pdfBuffer);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
+function detectLanguage(text: string): 'en' | 'ar' {
+  // Detect if text contains Arabic characters
+  const arabicRegex = /[\u0600-\u06FF]/;
+  return arabicRegex.test(text) ? 'ar' : 'en';
+}
+
 function generateHTML(report: Report, options: PDFOptions): string {
-  const date = new Date(report.createdAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  // Detect language from report content
+  const language = detectLanguage(
+    (report.executiveSummary ?? '') +
+    (report.marketAnalysis ?? '') +
+    (report.technicalAnalysis ?? '') +
+    (report.financialAnalysis ?? '') +
+    (report.riskAssessment ?? '') +
+    (report.recommendations ?? '')
+  );
+
+  const date = new Date(report.createdAt).toLocaleDateString(
+    language === 'ar' ? 'ar-SA' : 'en-US',
+    {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }
+  );
 
   const primaryColor = options.primaryColor || '#6366f1';
   const accentColor = options.accentColor || '#8b5cf6';
+  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const textAlign = language === 'ar' ? 'right' : 'left';
 
   return `
 <!DOCTYPE html>
-<html>
+<html dir="${direction}" lang="${language}">
 <head>
   <meta charset="UTF-8">
   <style>
@@ -142,12 +208,60 @@ function generateHTML(report: Report, options: PDFOptions): string {
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;
       font-size: 11pt;
       line-height: 1.7;
       color: var(--text-dark);
       background: white;
+      direction: ${direction};
+      text-align: ${textAlign};
     }
+
+    /* RTL Support */
+    ${language === 'ar' ? `
+      table {
+        margin-right: 0;
+        margin-left: auto;
+      }
+
+      th, td {
+        text-align: ${textAlign};
+      }
+
+      ul, ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        text-align: right;
+      }
+
+      li {
+        text-align: ${textAlign};
+        direction: rtl;
+        margin-bottom: 8px;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 20px;
+        position: relative;
+      }
+
+      li::before {
+        content: '•';
+        position: absolute;
+        right: 8px;
+        color: inherit;
+      }
+
+      .section-title {
+        border-${direction === 'rtl' ? 'right' : 'left'}: 4px solid var(--primary);
+        padding-${direction === 'rtl' ? 'right' : 'left'}: 12px;
+      }
+
+      .stats-box {
+        text-align: center;
+      }
+    ` : ''}
 
     /* Cover Page */
     .cover-page {

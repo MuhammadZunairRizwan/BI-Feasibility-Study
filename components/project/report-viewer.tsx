@@ -1,8 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+
+// Detect if text contains Arabic characters
+function detectLanguage(text: string): 'en' | 'ar' {
+  const arabicRegex = /[\u0600-\u06FF]/;
+  return arabicRegex.test(text) ? 'ar' : 'en';
+}
+
+// RTL styles for Arabic content
+const RTL_STYLES = `
+  [dir="rtl"] ul, [dir="rtl"] ol {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: right;
+  }
+
+  [dir="rtl"] li {
+    text-align: right;
+    direction: rtl;
+    margin-bottom: 8px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 20px !important;
+    position: relative;
+  }
+
+  [dir="rtl"] li::before {
+    content: '•';
+    position: absolute;
+    right: 8px;
+    color: inherit;
+  }
+`;
 
 interface ReportViewerProps {
   report: {
@@ -37,6 +71,21 @@ export function ReportViewer({ report }: ReportViewerProps) {
     new Set(['executiveSummary'])
   );
 
+  // Detect language from report content
+  const language = useMemo(() => {
+    const content =
+      (report.executiveSummary || '') +
+      (report.marketAnalysis || '') +
+      (report.technicalAnalysis || '') +
+      (report.financialAnalysis || '') +
+      (report.riskAssessment || '') +
+      (report.recommendations || '');
+    return detectLanguage(content);
+  }, [report]);
+
+  const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const textAlign = language === 'ar' ? 'right' : 'left';
+
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
@@ -58,9 +107,11 @@ export function ReportViewer({ report }: ReportViewerProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex justify-end gap-2">
+    <>
+      {language === 'ar' && <style>{RTL_STYLES}</style>}
+      <div className="space-y-4" dir={direction} style={{ direction }}>
+        {/* Controls */}
+        <div className={`flex ${language === 'ar' ? 'justify-start' : 'justify-end'} gap-2`}>
         <Button variant="outline" size="sm" onClick={expandAll} className="border-white/10 text-white hover:bg-white/10">
           Expand All
         </Button>
@@ -82,8 +133,8 @@ export function ReportViewer({ report }: ReportViewerProps) {
               className="cursor-pointer hover:bg-white/5 transition-colors p-6"
               onClick={() => toggleSection(key)}
             >
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">{title}</h3>
+              <div className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : 'flex-row'} justify-between`}>
+                <h3 className="text-lg font-semibold text-white" style={{ textAlign }}>{title}</h3>
                 {isExpanded ? (
                   <ChevronUp className="h-5 w-5 text-slate-400" />
                 ) : (
@@ -95,6 +146,7 @@ export function ReportViewer({ report }: ReportViewerProps) {
               <div className="px-6 pb-6">
                 <div
                   className="prose prose-invert prose-slate max-w-none prose-headings:text-white prose-p:text-slate-300 prose-li:text-slate-300 prose-strong:text-white"
+                  style={{ direction, textAlign }}
                   dangerouslySetInnerHTML={{ __html: formatContent(content) }}
                 />
               </div>
@@ -110,8 +162,8 @@ export function ReportViewer({ report }: ReportViewerProps) {
             className="cursor-pointer hover:bg-white/5 transition-colors p-6"
             onClick={() => toggleSection('assumptions')}
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white">Key Assumptions</h3>
+            <div className={`flex items-center ${language === 'ar' ? 'flex-row-reverse' : 'flex-row'} justify-between`}>
+              <h3 className="text-lg font-semibold text-white" style={{ textAlign }}>Key Assumptions</h3>
               {expandedSections.has('assumptions') ? (
                 <ChevronUp className="h-5 w-5 text-slate-400" />
               ) : (
@@ -120,13 +172,13 @@ export function ReportViewer({ report }: ReportViewerProps) {
             </div>
           </div>
           {expandedSections.has('assumptions') && (
-            <div className="px-6 pb-6">
+            <div className="px-6 pb-6" style={{ direction, textAlign }}>
               <div className="space-y-4">
                 {groupAssumptionsByCategory(report.assumptions).map(
                   ([category, assumptions]) => (
                     <div key={category}>
-                      <h4 className="font-medium text-cyan-400 mb-2">{category}</h4>
-                      <ul className="space-y-2">
+                      <h4 className="font-medium text-cyan-400 mb-2" style={{ textAlign }}>{category}</h4>
+                      <ul className="space-y-2" style={{ paddingInlineStart: '20px' }}>
                         {assumptions.map((assumption) => (
                           <li key={assumption.id} className="text-sm">
                             <span className="font-medium text-white">{assumption.key}:</span>{' '}
@@ -147,7 +199,8 @@ export function ReportViewer({ report }: ReportViewerProps) {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

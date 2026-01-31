@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Return PDF as blob
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Feasibility_Study.pdf"`,
