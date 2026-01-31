@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 174 72% 56%;
+    --primary-foreground: 222 47% 6%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 174 72% 56%;
+    --accent-foreground: 222 47% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 174 72% 56%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom gradient text */
+.gradient-text {
+  @apply bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 bg-clip-text text-transparent;
+}
+
+/* Glow effects */
+.glow {
+  box-shadow: 0 0 60px rgba(45, 212, 191, 0.15);
+}
+
+.glow-sm {
+  box-shadow: 0 0 30px rgba(45, 212, 191, 0.1);
+}
+
+/* Glass morphism */
+.glass {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10;
+}
+
+.glass-card {
+  @apply bg-white/[0.03] backdrop-blur-lg border border-white/[0.08] rounded-2xl;
+}
+
+/* Animated gradient background */
+.animated-gradient {
+  background: radial-gradient(ellipse at top, rgba(45, 212, 191, 0.15) 0%, transparent 50%),
+              radial-gradient(ellipse at bottom right, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
+              linear-gradient(to bottom, hsl(222, 47%, 6%), hsl(222, 47%, 4%));
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(222, 47%, 8%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(217, 33%, 25%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(217, 33%, 35%);
+}
+
+/* Focus styles */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+}
+
+/* Button hover effects */
+.btn-glow:hover {
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.4);
+}
+
+/* Card hover effects */
+.card-hover {
+  @apply transition-all duration-300;
+}
+
+.card-hover:hover {
+  @apply border-white/20;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Navbar blur */
+.nav-blur {
+  @apply bg-slate-900/80 backdrop-blur-xl border border-white/10;
+}
+
+/* Text shadow for headings */
+.text-glow {
+  text-shadow: 0 0 40px rgba(45, 212, 191, 0.3);
+}
+
+/* Loading animation */
+.loading-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-shimmer::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.2) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 2s infinite;
+  content: '';
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Professional report styles */
+.report-content {
+  font-family: 'Merriweather', Georgia, serif;
+  line-height: 1.8;
+}
+
+.report-heading {
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Financial table styles */
+.financial-table {
+  @apply w-full border-collapse text-sm;
+}
+
+.financial-table th {
+  @apply bg-primary text-primary-foreground font-semibold p-3 text-right first:text-left;
+}
+
+.financial-table td {
+  @apply p-3 border-b border-border text-right first:text-left tabular-nums;
+}
+
+.financial-table tr.section-header td {
+  @apply bg-muted font-semibold text-primary border-t-2 border-primary;
+}
+
+.financial-table tr.total td {
+  @apply font-bold bg-muted border-t-2 border-primary;
+}
