@@ -60,7 +60,7 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
   try {
     console.log('🔍 Launching Chromium...');
     browser = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       timeout: 60000,
       args: [
         '--no-sandbox',
