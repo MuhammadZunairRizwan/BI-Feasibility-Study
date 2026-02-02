@@ -22,7 +22,7 @@ AI-Powered Feasibility Study Platform that generates professional, comprehensive
 - **PDF Generation**: Puppeteer with custom styling
 - **Deployment**: Railway.app
 
-## Prerequisites
+## Prerequisite
 
 - Node.js 18+
 - Firebase project with Firestore enabled
