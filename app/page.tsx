@@ -3,8 +3,6 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BarChart3, FileText, Zap, Shield, Globe, Clock, Sparkles } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">

@@ -15,8 +15,7 @@ const nextConfig = {
       },
     ],
   },
-  // Railway deployment optimization
-  output: 'standalone',
+  // Allow dynamic pages with context providers
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't bundle undici on client side
