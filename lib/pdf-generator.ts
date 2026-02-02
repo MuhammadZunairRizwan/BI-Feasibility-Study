@@ -66,38 +66,42 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
   let browser;
   try {
-    // Try to launch with system Chrome first
-    browser = await puppeteer.launch({
-      headless: true,
-      timeout: 60000,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--disable-software-rasterizer',
-      ],
-    });
-  } catch (launchError: any) {
-    // Fallback: Try with @sparticuz/chromium if available
+    // Try to launch with @sparticuz/chromium first (production-optimized)
     if (chromium) {
       try {
-        console.log('Attempting to use @sparticuz/chromium...');
+        console.log('📦 Attempting to use @sparticuz/chromium (production)...');
         browser = await puppeteer.launch({
           args: chromium.args,
           defaultViewport: chromium.defaultViewport,
           executablePath: await chromium.executablePath(),
           headless: chromium.headless,
         });
+        console.log('✓ @sparticuz/chromium launched successfully');
       } catch (chromiumError: any) {
-        console.error('❌ Failed to launch with @sparticuz/chromium.');
-        throw new Error(`Browser launch failed: ${chromiumError.message}`);
+        console.error('❌ Failed to launch with @sparticuz/chromium:', chromiumError.message);
+        throw chromiumError;
       }
     } else {
-      console.error('❌ Failed to launch browser. Chrome/Chromium is not installed.');
-      console.error('Solutions:');
-      console.error('1. Install Chrome: https://www.google.com/chrome/');
-      console.error('2. Or install: npm install --save-dev @sparticuz/chromium');
+      // Fallback: Try with system Chrome
+      console.log('🔍 @sparticuz/chromium not available, trying system Chrome...');
+      browser = await puppeteer.launch({
+        headless: true,
+        timeout: 60000,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-software-rasterizer',
+        ],
+      });
+      console.log('✓ System Chrome launched successfully');
+    }
+  } catch (launchError: any) {
+    console.error('❌ Failed to launch browser. Error:', launchError.message);
+    console.error('Solutions:');
+    console.error('1. Ensure @sparticuz/chromium is in dependencies (not devDependencies)');
+    console.error('2. Check Railway logs for more details');
       throw new Error(`Browser launch failed: ${launchError.message}`);
     }
   }
@@ -157,6 +161,45 @@ function detectLanguage(text: string): 'en' | 'ar' {
   const arabicRegex = /[\u0600-\u06FF]/;
   return arabicRegex.test(text) ? 'ar' : 'en';
 }
+
+const translations = {
+  en: {
+    tableOfContents: 'Table of Contents',
+    section1: 'Executive Summary',
+    section2: 'Market Analysis',
+    section3: 'Technical Feasibility',
+    section4: 'Financial Analysis',
+    section5: 'Risk Assessment',
+    section6: 'Recommendations',
+    section7: 'Key Assumptions',
+    preparedBy: 'Prepared By',
+    projectCode: 'Project Code:',
+    location: 'Location:',
+    reportDate: 'Report Date:',
+    feasibilityStudy: 'FEASIBILITY STUDY',
+    tagline: 'Professional AI-Powered Feasibility Analysis',
+    disclaimer: '⚠️ Disclaimer: This feasibility study is based on the assumptions listed above and information available at the time of preparation. Actual results may vary significantly based on market conditions, execution capabilities, and other factors beyond our control. This report is for informational purposes only and should not be construed as financial, legal, or professional advice. Users should conduct their own due diligence and consult with qualified professionals before making investment decisions.',
+    noContent: 'No content available.',
+  },
+  ar: {
+    tableOfContents: 'جدول المحتويات',
+    section1: 'الملخص التنفيذي',
+    section2: 'تحليل السوق',
+    section3: 'الجدوى الفنية',
+    section4: 'التحليل المالي',
+    section5: 'تقييم المخاطر',
+    section6: 'التوصيات',
+    section7: 'الافتراضات الرئيسية',
+    preparedBy: 'أعده',
+    projectCode: 'رمز المشروع:',
+    location: 'الموقع:',
+    reportDate: 'تاريخ التقرير:',
+    feasibilityStudy: 'دراسة الجدوى',
+    tagline: 'تحليل جدوى قائم على الذكاء الاصطناعي احترافي',
+    disclaimer: '⚠️ تحذير: تستند هذه دراسة الجدوى على الافتراضات المذكورة أعلاه والمعلومات المتاحة في وقت التحضير. قد تختلف النتائج الفعلية بشكل كبير بناءً على ظروف السوق والقدرات على التنفيذ وعوامل أخرى خارجة عن سيطرتنا. هذا التقرير لأغراض إعلامية فقط ولا ينبغي اعتباره نصيحة مالية أو قانونية أو مهنية. يجب على المستخدمين إجراء العناية الواجبة والتشاور مع المتخصصين المؤهلين قبل اتخاذ قرارات الاستثمار.',
+    noContent: 'لا توجد محتوى متاح.',
+  },
+};
 
 function generateHTML(report: Report, options: PDFOptions): string {
   // Detect language from report content
@@ -798,60 +841,60 @@ function generateHTML(report: Report, options: PDFOptions): string {
     ${options.companyLogo ? `<img src="${options.companyLogo}" alt="Logo" class="cover-logo" />` : ''}
 
     <h1>${escapeHtml(report.project.name)}</h1>
-    <div class="cover-subtitle">FEASIBILITY STUDY</div>
+    <div class="cover-subtitle">${translations[language].feasibilityStudy}</div>
 
-    <div class="cover-prepared">Prepared By</div>
+    <div class="cover-prepared">${translations[language].preparedBy}</div>
     <div class="cover-company">${escapeHtml(options.companyName || 'BI Feasibility Study')}</div>
 
-    <div class="cover-tagline">Professional AI-Powered Feasibility Analysis</div>
+    <div class="cover-tagline">${translations[language].tagline}</div>
 
     <div class="cover-badge">${escapeHtml(report.project.sector)}</div>
 
     <div class="cover-meta">
-      ${options.projectCode ? `<div class="cover-meta-item"><span>Project Code:</span> ${escapeHtml(options.projectCode)}</div>` : ''}
-      <div class="cover-meta-item"><span>Location:</span> ${escapeHtml(report.project.city)}, ${escapeHtml(report.project.country)}</div>
-      <div class="cover-meta-item"><span>Report Date:</span> ${date}</div>
+      ${options.projectCode ? `<div class="cover-meta-item"><span>${translations[language].projectCode}</span> ${escapeHtml(options.projectCode)}</div>` : ''}
+      <div class="cover-meta-item"><span>${translations[language].location}</span> ${escapeHtml(report.project.city)}, ${escapeHtml(report.project.country)}</div>
+      <div class="cover-meta-item"><span>${translations[language].reportDate}</span> ${date}</div>
     </div>
   </div>
 
   <!-- Table of Contents -->
   <div class="toc-page">
     <div class="toc-header">
-      <h2>Table of Contents</h2>
+      <h2>${translations[language].tableOfContents}</h2>
     </div>
     <div class="toc-list">
       <div class="toc-item">
-        <span class="title">1. Executive Summary</span>
+        <span class="title">1. ${translations[language].section1}</span>
         <span class="dots"></span>
         <span class="page">3</span>
       </div>
       <div class="toc-item">
-        <span class="title">2. Market Analysis</span>
+        <span class="title">2. ${translations[language].section2}</span>
         <span class="dots"></span>
         <span class="page">5</span>
       </div>
       <div class="toc-item">
-        <span class="title">3. Technical Feasibility</span>
+        <span class="title">3. ${translations[language].section3}</span>
         <span class="dots"></span>
         <span class="page">8</span>
       </div>
       <div class="toc-item">
-        <span class="title">4. Financial Analysis</span>
+        <span class="title">4. ${translations[language].section4}</span>
         <span class="dots"></span>
         <span class="page">11</span>
       </div>
       <div class="toc-item">
-        <span class="title">5. Risk Assessment</span>
+        <span class="title">5. ${translations[language].section5}</span>
         <span class="dots"></span>
         <span class="page">15</span>
       </div>
       <div class="toc-item">
-        <span class="title">6. Recommendations</span>
+        <span class="title">6. ${translations[language].section6}</span>
         <span class="dots"></span>
         <span class="page">18</span>
       </div>
       <div class="toc-item">
-        <span class="title">7. Key Assumptions</span>
+        <span class="title">7. ${translations[language].section7}</span>
         <span class="dots"></span>
         <span class="page">21</span>
       </div>
@@ -861,64 +904,64 @@ function generateHTML(report: Report, options: PDFOptions): string {
   <!-- Executive Summary -->
   <div class="section">
     <div class="section-header">
-      <h2><span class="section-number">1</span> Executive Summary</h2>
+      <h2><span class="section-number">1</span> ${translations[language].section1}</h2>
     </div>
-    ${formatContent(report.executiveSummary || '')}
+    ${formatContent(report.executiveSummary || '', language)}
   </div>
 
   <!-- Market Analysis -->
   <div class="section">
     <div class="section-header">
-      <h2><span class="section-number">2</span> Market Analysis</h2>
+      <h2><span class="section-number">2</span> ${translations[language].section2}</h2>
     </div>
-    ${formatContent(report.marketAnalysis || '')}
+    ${formatContent(report.marketAnalysis || '', language)}
   </div>
 
   <!-- Technical Feasibility -->
   <div class="section">
     <div class="section-header">
-      <h2><span class="section-number">3</span> Technical Feasibility</h2>
+      <h2><span class="section-number">3</span> ${translations[language].section3}</h2>
     </div>
-    ${formatContent(report.technicalAnalysis || '')}
+    ${formatContent(report.technicalAnalysis || '', language)}
   </div>
 
   <!-- Financial Analysis -->
   <div class="section">
     <div class="section-header">
-      <h2><span class="section-number">4</span> Financial Analysis</h2>
+      <h2><span class="section-number">4</span> ${translations[language].section4}</h2>
     </div>
-    ${formatContent(report.financialAnalysis || '')}
+    ${formatContent(report.financialAnalysis || '', language)}
   </div>
 
   <!-- Risk Assessment -->
   <div class="section">
     <div class="section-header">
-      <h2><span class="section-number">5</span> Risk Assessment</h2>
+      <h2><span class="section-number">5</span> ${translations[language].section5}</h2>
     </div>
-    ${formatContent(report.riskAssessment || '')}
+    ${formatContent(report.riskAssessment || '', language)}
   </div>
 
   <!-- Recommendations -->
   <div class="section">
     <div class="section-header">
-      <h2><span class="section-number">6</span> Recommendations</h2>
+      <h2><span class="section-number">6</span> ${translations[language].section6}</h2>
     </div>
-    ${formatContent(report.recommendations || '')}
+    ${formatContent(report.recommendations || '', language)}
   </div>
 
   <!-- Key Assumptions -->
   <div class="section assumptions-section">
     <div class="section-header">
-      <h2><span class="section-number">7</span> Key Assumptions</h2>
+      <h2><span class="section-number">7</span> ${translations[language].section7}</h2>
     </div>
-    <p>The following assumptions underpin the analysis and projections presented in this feasibility study:</p>
+    <p>${language === 'ar' ? 'الافتراضات التالية تدعم التحليل والتوقعات المقدمة في دراسة الجدوى هذه:' : 'The following assumptions underpin the analysis and projections presented in this feasibility study:'}</p>
 
     <div class="decorative-line"></div>
 
     ${formatAssumptions(report.assumptions)}
 
     <div class="disclaimer">
-      <strong>⚠️ Disclaimer:</strong> This feasibility study is based on the assumptions listed above and information available at the time of preparation. Actual results may vary significantly based on market conditions, execution capabilities, and other factors beyond our control. This report is for informational purposes only and should not be construed as financial, legal, or professional advice. Users should conduct their own due diligence and consult with qualified professionals before making investment decisions.
+      <strong>${translations[language].disclaimer}</strong>
     </div>
   </div>
 </body>
@@ -936,8 +979,8 @@ function escapeHtml(text: string): string {
 }
 
 
-function formatContent(content: string): string {
-  if (!content) return '<p>No content available.</p>';
+function formatContent(content: string, language: 'en' | 'ar' = 'en'): string {
+  if (!content) return `<p>${translations[language].noContent}</p>`;
 
   // First, clean up the content
   let cleaned = content
