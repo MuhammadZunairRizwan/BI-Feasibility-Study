@@ -15,14 +15,10 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html>
-      <body>
-        <div style={{ padding: '20px' }}>
-          <h2>Something went wrong!</h2>
-          <p>{error.message}</p>
-          <button onClick={() => reset()}>Try again</button>
-        </div>
-      </body>
-    </html>
+    <div style={{ padding: '20px', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <h2>Something went wrong!</h2>
+      <p>{error.message}</p>
+      <button onClick={() => reset()} style={{ padding: '8px 16px', marginTop: '16px' }}>Try again</button>
+    </div>
   );
 }
