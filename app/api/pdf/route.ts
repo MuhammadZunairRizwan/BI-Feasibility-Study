@@ -57,10 +57,17 @@ export async function POST(request: NextRequest) {
         'Content-Disposition': `attachment; filename="${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Feasibility_Study.pdf"`,
       },
     });
-  } catch (error) {
-    console.error('PDF generation error:', error);
+  } catch (error: any) {
+    console.error('PDF generation error:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return NextResponse.json(
-      { error: 'Failed to generate PDF' },
+      {
+        error: 'Failed to generate PDF',
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     );
   }
