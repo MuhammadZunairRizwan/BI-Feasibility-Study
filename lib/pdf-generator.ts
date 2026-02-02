@@ -2,14 +2,6 @@ import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Optional: import chromium if available
-let chromium: any;
-try {
-  chromium = require('@sparticuz/chromium');
-} catch {
-  // @sparticuz/chromium not installed, will use system Chrome
-}
-
 interface Report {
   id: string;
   executiveSummary: string | null;
@@ -66,42 +58,25 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
   let browser;
   try {
-    // Try to launch with @sparticuz/chromium first (production-optimized)
-    if (chromium) {
-      try {
-        console.log('📦 Attempting to use @sparticuz/chromium (production)...');
-        browser = await puppeteer.launch({
-          args: chromium.args,
-          defaultViewport: chromium.defaultViewport,
-          executablePath: await chromium.executablePath(),
-          headless: chromium.headless,
-        });
-        console.log('✓ @sparticuz/chromium launched successfully');
-      } catch (chromiumError: any) {
-        console.error('❌ Failed to launch with @sparticuz/chromium:', chromiumError.message);
-        throw chromiumError;
-      }
-    } else {
-      // Fallback: Try with system Chrome
-      console.log('🔍 @sparticuz/chromium not available, trying system Chrome...');
-      browser = await puppeteer.launch({
-        headless: true,
-        timeout: 60000,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-gpu',
-          '--disable-dev-shm-usage',
-          '--disable-software-rasterizer',
-        ],
-      });
-      console.log('✓ System Chrome launched successfully');
-    }
+    // Use system Chrome/Chromium (already installed via apt-get)
+    console.log('🔍 Launching system Chromium...');
+    browser = await puppeteer.launch({
+      headless: true,
+      timeout: 60000,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--disable-software-rasterizer',
+      ],
+      // Explicitly use the system chromium
+      executablePath: '/usr/bin/chromium' || undefined,
+    });
+    console.log('✓ System Chromium launched successfully');
   } catch (launchError: any) {
     console.error('❌ Failed to launch browser. Error:', launchError.message);
-    console.error('Solutions:');
-    console.error('1. Ensure @sparticuz/chromium is in dependencies (not devDependencies)');
-    console.error('2. Check Railway logs for more details');
+    console.error('Make sure chromium is installed on the system');
     throw new Error(`Browser launch failed: ${launchError.message}`);
   }
 
