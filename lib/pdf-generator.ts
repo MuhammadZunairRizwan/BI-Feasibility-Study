@@ -83,14 +83,18 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
   try {
     const page = await browser!.newPage();
-    page.setDefaultTimeout(90000);
-    page.setDefaultNavigationTimeout(90000);
+    page.setDefaultTimeout(120000);
+    page.setDefaultNavigationTimeout(120000);
 
     // Set smaller viewport to reduce memory usage
     await page.setViewport({ width: 850, height: 1100 });
 
-    // Use simpler content loading strategy
-    await page.setContent(html, { waitUntil: 'load', timeout: 90000 });
+    // Use data URL with goto for more stable rendering
+    const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    await page.goto(dataUrl, { waitUntil: 'load', timeout: 120000 });
+
+    // Small delay to ensure rendering is complete
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
