@@ -70,8 +70,8 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
         '--disable-dev-shm-usage',
         '--disable-software-rasterizer',
       ],
-      // Explicitly use the system chromium
-      executablePath: '/usr/bin/chromium' || undefined,
+      // Use system chromium installed via apt-get
+      executablePath: '/usr/bin/chromium',
     });
     console.log('✓ System Chromium launched successfully');
   } catch (launchError: any) {
