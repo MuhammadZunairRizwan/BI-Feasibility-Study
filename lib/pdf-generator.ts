@@ -58,8 +58,7 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
   let browser;
   try {
-    // Use system Chrome/Chromium (already installed via apt-get)
-    console.log('🔍 Launching system Chromium...');
+    console.log('🔍 Launching Chromium...');
     browser = await puppeteer.launch({
       headless: true,
       timeout: 60000,
@@ -70,13 +69,10 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
         '--disable-dev-shm-usage',
         '--disable-software-rasterizer',
       ],
-      // Use system chromium installed via apt-get
-      executablePath: '/usr/bin/chromium',
     });
-    console.log('✓ System Chromium launched successfully');
+    console.log('✓ Chromium launched successfully');
   } catch (launchError: any) {
     console.error('❌ Failed to launch browser. Error:', launchError.message);
-    console.error('Make sure chromium is installed on the system');
     throw new Error(`Browser launch failed: ${launchError.message}`);
   }
 
