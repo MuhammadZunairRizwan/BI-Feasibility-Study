@@ -102,8 +102,7 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
     console.error('Solutions:');
     console.error('1. Ensure @sparticuz/chromium is in dependencies (not devDependencies)');
     console.error('2. Check Railway logs for more details');
-      throw new Error(`Browser launch failed: ${launchError.message}`);
-    }
+    throw new Error(`Browser launch failed: ${launchError.message}`);
   }
 
   try {
