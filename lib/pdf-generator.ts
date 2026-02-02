@@ -83,16 +83,14 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
 
   try {
     const page = await browser!.newPage();
-    page.setDefaultTimeout(120000);
-    page.setDefaultNavigationTimeout(120000);
+    page.setDefaultTimeout(90000);
+    page.setDefaultNavigationTimeout(90000);
 
-    // Set viewport before content to avoid rendering issues
-    await page.setViewport({ width: 1200, height: 1600 });
+    // Set smaller viewport to reduce memory usage
+    await page.setViewport({ width: 850, height: 1100 });
 
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 120000 });
-
-    // Add a small delay to ensure rendering is complete
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Use simpler content loading strategy
+    await page.setContent(html, { waitUntil: 'load', timeout: 90000 });
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -104,7 +102,6 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
       },
       printBackground: true,
       displayHeaderFooter: true,
-      preferCSSPageSize: false,
       headerTemplate: `
         <div style="font-size: 9px; width: 100%; padding: 10px 50px; display: flex; justify-content: space-between; border-bottom: 1px solid #e5e7eb;">
           <div>
@@ -131,7 +128,11 @@ export async function generatePDF(report: Report, options: PDFOptions = {}): Pro
       `,
     });
 
+    await page.close();
     return Buffer.from(pdfBuffer);
+  } catch (pdfError: any) {
+    console.error('PDF rendering error:', pdfError?.message);
+    throw pdfError;
   } finally {
     if (browser) {
       await browser.close();
